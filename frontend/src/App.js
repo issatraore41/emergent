@@ -64,6 +64,7 @@ const Navigation = () => {
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -77,6 +78,32 @@ const Dashboard = () => {
       toast.error('Erreur lors du chargement du tableau de bord');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const response = await axios.get(`${API}/export/excel`, {
+        responseType: 'blob'
+      });
+      
+      // Créer un lien de téléchargement
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `export_lotissements_${new Date().toISOString().slice(0,10)}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Export Excel terminé avec succès !');
+    } catch (error) {
+      toast.error('Erreur lors de l\'export Excel');
+      console.error('Export error:', error);
+    } finally {
+      setExporting(false);
     }
   };
 
