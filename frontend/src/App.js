@@ -294,7 +294,7 @@ const LotissementsPage = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-slate-800">Gestion des Lotissements</h2>
         <div className="flex gap-3">
-          <Button onClick={handleExportCSV} variant="outline">
+          <Button onClick={() => exportCSV('lotissements')} variant="outline">
             📄 Export CSV
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
