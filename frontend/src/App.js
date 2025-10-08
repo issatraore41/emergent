@@ -18,6 +18,29 @@ import '@/App.css';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Fonction utilitaire pour l'export CSV
+const exportCSV = async (tableName, displayName = null) => {
+  try {
+    const response = await axios.get(`${API}/export/csv/${tableName}`, {
+      responseType: 'blob'
+    });
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${displayName || tableName}_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    
+    toast.success(`Export CSV ${displayName || tableName} terminé !`);
+  } catch (error) {
+    toast.error('Erreur lors de l\'export CSV');
+    console.error('Export error:', error);
+  }
+};
+
 // Navigation Component
 const Navigation = () => {
   const location = useLocation();
