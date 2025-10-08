@@ -119,9 +119,18 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-slate-800">Tableau de bord</h2>
-        <Button onClick={fetchDashboardData} variant="outline">
-          🔄 Actualiser
-        </Button>
+        <div className="flex gap-3">
+          <Button onClick={fetchDashboardData} variant="outline">
+            🔄 Actualiser
+          </Button>
+          <Button 
+            onClick={handleExportExcel} 
+            disabled={exporting}
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+          >
+            {exporting ? '⏳ Export en cours...' : '📊 Exporter Excel'}
+          </Button>
+        </div>
       </div>
 
       {dashboardData && (
