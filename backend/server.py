@@ -381,11 +381,23 @@ async def get_ventes_detaillees():
                 "foreignField": "id",
                 "as": "lotissement_info"
             }
+        },
+        {
+            "$project": {
+                "_id": 0  # Exclure le _id de MongoDB
+            }
         }
     ]
     
     ventes_detaillees = await db.ventes.aggregate(pipeline).to_list(1000)
-    return ventes_detaillees
+    
+    # Traiter chaque vente pour s'assurer qu'elle est sérialisable
+    result = []
+    for vente in ventes_detaillees:
+        vente_parsed = parse_from_mongo(vente)
+        result.append(vente_parsed)
+    
+    return result
 
 # Route de base
 @api_router.get("/")
