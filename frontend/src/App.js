@@ -481,16 +481,152 @@ const LotsPage = () => {
   );
 };
 
-const ClientsPage = () => (
-  <div className="space-y-6">
-    <h2 className="text-3xl font-bold text-slate-800">Gestion des Clients</h2>
-    <Card>
-      <CardContent className="flex items-center justify-center h-64">
-        <p className="text-slate-500">Module en développement...</p>
-      </CardContent>
-    </Card>
-  </div>
-);
+const ClientsPage = () => {
+  const [clients, setClients] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newClient, setNewClient] = useState({
+    nom_complet: '',
+    date_naissance: '',
+    lieu_naissance: '',
+    numero_cni: '',
+    telephone: ''
+  });
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const fetchClients = async () => {
+    try {
+      const response = await axios.get(`${API}/clients`);
+      setClients(response.data);
+    } catch (error) {
+      toast.error('Erreur lors de la récupération des clients');
+    }
+  };
+
+  const handleCreateClient = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API}/clients`, newClient);
+      toast.success('Client créé avec succès');
+      setNewClient({ nom_complet: '', date_naissance: '', lieu_naissance: '', numero_cni: '', telephone: '' });
+      setIsDialogOpen(false);
+      fetchClients();
+    } catch (error) {
+      toast.error('Erreur lors de la création du client');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold text-slate-800">Gestion des Clients</h2>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
+              ➕ Nouveau Client
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Enregistrer un nouveau client</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateClient} className="space-y-4">
+              <div>
+                <Label htmlFor="nom_complet">Nom Complet</Label>
+                <Input
+                  id="nom_complet"
+                  value={newClient.nom_complet}
+                  onChange={(e) => setNewClient({...newClient, nom_complet: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="date_naissance">Date de Naissance</Label>
+                  <Input
+                    id="date_naissance"
+                    type="date"
+                    value={newClient.date_naissance}
+                    onChange={(e) => setNewClient({...newClient, date_naissance: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lieu_naissance">Lieu de Naissance</Label>
+                  <Input
+                    id="lieu_naissance"
+                    value={newClient.lieu_naissance}
+                    onChange={(e) => setNewClient({...newClient, lieu_naissance: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="numero_cni">Numéro CNI</Label>
+                  <Input
+                    id="numero_cni"
+                    value={newClient.numero_cni}
+                    onChange={(e) => setNewClient({...newClient, numero_cni: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="telephone">Téléphone</Label>
+                  <Input
+                    id="telephone"
+                    value={newClient.telephone}
+                    onChange={(e) => setNewClient({...newClient, telephone: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+              <Button type="submit" className="w-full">
+                Enregistrer le client
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom Complet</TableHead>
+                <TableHead>Date de Naissance</TableHead>
+                <TableHead>Lieu de Naissance</TableHead>
+                <TableHead>CNI</TableHead>
+                <TableHead>Téléphone</TableHead>
+                <TableHead>Date d'Enregistrement</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {clients.map((client) => (
+                <TableRow key={client.id}>
+                  <TableCell className="font-medium">{client.nom_complet}</TableCell>
+                  <TableCell>{new Date(client.date_naissance).toLocaleDateString('fr-FR')}</TableCell>
+                  <TableCell>{client.lieu_naissance}</TableCell>
+                  <TableCell>{client.numero_cni}</TableCell>
+                  <TableCell>{client.telephone}</TableCell>
+                  <TableCell>{new Date(client.created_at).toLocaleDateString('fr-FR')}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {clients.length === 0 && (
+            <div className="flex items-center justify-center h-32">
+              <p className="text-slate-500">Aucun client enregistré</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
 
 const VentesPage = () => (
   <div className="space-y-6">
