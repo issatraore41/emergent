@@ -354,50 +354,45 @@ async def get_dashboard_data():
         }
     }
 
-# Routes détaillées avec jointures
+# Routes détaillées avec jointures côté application
 @api_router.get("/ventes-detaillees")
 async def get_ventes_detaillees():
-    pipeline = [
-        {
-            "$lookup": {
-                "from": "lots",
-                "localField": "lot_id",
-                "foreignField": "id",
-                "as": "lot_info"
-            }
-        },
-        {
-            "$lookup": {
-                "from": "clients",
-                "localField": "client_id",
-                "foreignField": "id",
-                "as": "client_info"
-            }
-        },
-        {
-            "$lookup": {
-                "from": "lotissements",
-                "localField": "lot_info.lotissement_id",
-                "foreignField": "id",
-                "as": "lotissement_info"
-            }
-        },
-        {
-            "$project": {
-                "_id": 0  # Exclure le _id de MongoDB
-            }
-        }
-    ]
+    # Récupérer les ventes
+    ventes = await db.ventes.find({}, {"_id": 0}).to_list(1000)
     
-    ventes_detaillees = await db.ventes.aggregate(pipeline).to_list(1000)
+    # Récupérer tous les lots, clients et lotissements
+    lots = await db.lots.find({}, {"_id": 0}).to_list(1000)
+    clients = await db.clients.find({}, {"_id": 0}).to_list(1000)
+    lotissements = await db.lotissements.find({}, {"_id": 0}).to_list(1000)
     
-    # Traiter chaque vente pour s'assurer qu'elle est sérialisable
-    result = []
-    for vente in ventes_detaillees:
+    # Créer des dictionnaires pour un accès rapide
+    lots_dict = {lot["id"]: lot for lot in lots}
+    clients_dict = {client["id"]: client for client in clients}
+    lotissements_dict = {lotissement["id"]: lotissement for lotissement in lotissements}
+    
+    # Enrichir chaque vente avec les informations liées
+    ventes_enrichies = []
+    for vente in ventes:
         vente_parsed = parse_from_mongo(vente)
-        result.append(vente_parsed)
+        
+        # Ajouter les infos du lot
+        if vente["lot_id"] in lots_dict:
+            lot_info = lots_dict[vente["lot_id"]]
+            vente_parsed["lot_info"] = [parse_from_mongo(lot_info)]
+            
+            # Ajouter les infos du lotissement
+            if lot_info["lotissement_id"] in lotissements_dict:
+                lotissement_info = lotissements_dict[lot_info["lotissement_id"]]
+                vente_parsed["lotissement_info"] = [parse_from_mongo(lotissement_info)]
+        
+        # Ajouter les infos du client
+        if vente["client_id"] in clients_dict:
+            client_info = clients_dict[vente["client_id"]]
+            vente_parsed["client_info"] = [parse_from_mongo(client_info)]
+        
+        ventes_enrichies.append(vente_parsed)
     
-    return result
+    return ventes_enrichies
 
 # Route de base
 @api_router.get("/")
