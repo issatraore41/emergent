@@ -628,16 +628,261 @@ const ClientsPage = () => {
   );
 };
 
-const VentesPage = () => (
-  <div className="space-y-6">
-    <h2 className="text-3xl font-bold text-slate-800">Gestion des Ventes</h2>
-    <Card>
-      <CardContent className="flex items-center justify-center h-64">
-        <p className="text-slate-500">Module en développement...</p>
-      </CardContent>
-    </Card>
-  </div>
-);
+const VentesPage = () => {
+  const [ventes, setVentes] = useState([]);
+  const [lots, setLots] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newVente, setNewVente] = useState({
+    lot_id: '',
+    client_id: '',
+    prix_vente: '',
+    avance_payee: '',
+    date_vente: new Date().toISOString().split('T')[0],
+    temoin: {
+      nom_complet: '',
+      telephone: ''
+    }
+  });
+
+  useEffect(() => {
+    fetchVentes();
+    fetchLotsDisponibles();
+    fetchClients();
+  }, []);
+
+  const fetchVentes = async () => {
+    try {
+      const response = await axios.get(`${API}/ventes-detaillees`);
+      setVentes(response.data);
+    } catch (error) {
+      toast.error('Erreur lors de la récupération des ventes');
+    }
+  };
+
+  const fetchLotsDisponibles = async () => {
+    try {
+      const response = await axios.get(`${API}/lots?statut=disponible`);
+      setLots(response.data);
+    } catch (error) {
+      toast.error('Erreur lors de la récupération des lots');
+    }
+  };
+
+  const fetchClients = async () => {
+    try {
+      const response = await axios.get(`${API}/clients`);
+      setClients(response.data);
+    } catch (error) {
+      toast.error('Erreur lors de la récupération des clients');
+    }
+  };
+
+  const handleCreateVente = async (e) => {
+    e.preventDefault();
+    try {
+      const venteData = {
+        ...newVente,
+        prix_vente: parseFloat(newVente.prix_vente),
+        avance_payee: parseFloat(newVente.avance_payee)
+      };
+      await axios.post(`${API}/ventes`, venteData);
+      toast.success('Vente enregistrée avec succès');
+      setNewVente({
+        lot_id: '',
+        client_id: '',
+        prix_vente: '',
+        avance_payee: '',
+        date_vente: new Date().toISOString().split('T')[0],
+        temoin: { nom_complet: '', telephone: '' }
+      });
+      setIsDialogOpen(false);
+      fetchVentes();
+      fetchLotsDisponibles();
+    } catch (error) {
+      toast.error('Erreur lors de l\'enregistrement de la vente');
+    }
+  };
+
+  const selectedLot = lots.find(lot => lot.id === newVente.lot_id);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold text-slate-800">Gestion des Ventes</h2>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700">
+              ➕ Nouvelle Vente
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Enregistrer une nouvelle vente</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateVente} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="lot_id">Lot à vendre</Label>
+                  <Select value={newVente.lot_id} onValueChange={(value) => setNewVente({...newVente, lot_id: value, prix_vente: lots.find(l => l.id === value)?.prix_total || ''})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un lot" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lots.map((lot) => (
+                        <SelectItem key={lot.id} value={lot.id}>
+                          Lot {lot.numero_lot} - Îlot {lot.numero_ilot} ({lot.superficie_m2}m² - {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(lot.prix_total)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="client_id">Client</Label>
+                  <Select value={newVente.client_id} onValueChange={(value) => setNewVente({...newVente, client_id: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.nom_complet} ({client.telephone})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {selectedLot && (
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Prix suggéré:</strong> {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(selectedLot.prix_total)}
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="prix_vente">Prix de Vente</Label>
+                  <Input
+                    id="prix_vente"
+                    type="number"
+                    step="0.01"
+                    value={newVente.prix_vente}
+                    onChange={(e) => setNewVente({...newVente, prix_vente: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="avance_payee">Avance Payée</Label>
+                  <Input
+                    id="avance_payee"
+                    type="number"
+                    step="0.01"
+                    value={newVente.avance_payee}
+                    onChange={(e) => setNewVente({...newVente, avance_payee: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="date_vente">Date de Vente</Label>
+                  <Input
+                    id="date_vente"
+                    type="date"
+                    value={newVente.date_vente}
+                    onChange={(e) => setNewVente({...newVente, date_vente: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+
+              {newVente.prix_vente && newVente.avance_payee && (
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>Reste à payer:</strong> {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(parseFloat(newVente.prix_vente) - parseFloat(newVente.avance_payee))}
+                  </p>
+                </div>
+              )}
+
+              <div className="border-t pt-4">
+                <h4 className="text-lg font-medium mb-3">Informations du Témoin</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="temoin_nom">Nom du Témoin</Label>
+                    <Input
+                      id="temoin_nom"
+                      value={newVente.temoin.nom_complet}
+                      onChange={(e) => setNewVente({...newVente, temoin: {...newVente.temoin, nom_complet: e.target.value}})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="temoin_telephone">Téléphone du Témoin</Label>
+                    <Input
+                      id="temoin_telephone"
+                      value={newVente.temoin.telephone}
+                      onChange={(e) => setNewVente({...newVente, temoin: {...newVente.temoin, telephone: e.target.value}})}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full">
+                Enregistrer la vente
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Lot</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Prix de Vente</TableHead>
+                <TableHead>Avance</TableHead>
+                <TableHead>Reste à Payer</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Statut</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ventes.map((vente) => (
+                <TableRow key={vente.id}>
+                  <TableCell className="font-medium">
+                    {vente.lot_info?.[0]?.numero_lot || 'N/A'} - Îlot {vente.lot_info?.[0]?.numero_ilot || 'N/A'}
+                  </TableCell>
+                  <TableCell>{vente.client_info?.[0]?.nom_complet || 'N/A'}</TableCell>
+                  <TableCell>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(vente.prix_vente)}</TableCell>
+                  <TableCell>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(vente.avance_payee)}</TableCell>
+                  <TableCell className="font-medium text-red-600">
+                    {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(vente.reste_a_payer)}
+                  </TableCell>
+                  <TableCell>{new Date(vente.date_vente).toLocaleDateString('fr-FR')}</TableCell>
+                  <TableCell>
+                    <Badge variant={vente.statut_paiement === 'complet' ? 'default' : 'destructive'}>
+                      {vente.statut_paiement}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {ventes.length === 0 && (
+            <div className="flex items-center justify-center h-32">
+              <p className="text-slate-500">Aucune vente enregistrée</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
 
 const PaiementsPage = () => (
   <div className="space-y-6">
