@@ -591,12 +591,16 @@ const ClientsPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-slate-800">Gestion des Clients</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
-              ➕ Nouveau Client
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-3">
+          <Button onClick={() => exportCSV('clients')} variant="outline">
+            📄 Export CSV
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
+                ➕ Nouveau Client
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Enregistrer un nouveau client</DialogTitle>
