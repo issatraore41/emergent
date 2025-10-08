@@ -327,12 +327,21 @@ async def get_dashboard_data():
     total_clients = await db.clients.count_documents({})
     total_ventes = await db.ventes.count_documents({})
     
-    # Chiffre d'affaires
+    # Chiffre d'affaires et montant encaissé total
     ventes_pipeline = [
-        {"$group": {"_id": None, "total_ca": {"$sum": "$prix_vente"}, "total_encaisse": {"$sum": "$avance_payee"}}}
+        {"$group": {"_id": None, "total_ca": {"$sum": "$prix_vente"}}}
     ]
     ca_result = await db.ventes.aggregate(ventes_pipeline).to_list(1)
-    ca_data = ca_result[0] if ca_result else {"total_ca": 0, "total_encaisse": 0}
+    total_ca = ca_result[0]["total_ca"] if ca_result else 0
+    
+    # Calculer le montant total encaissé à partir de tous les paiements
+    paiements_pipeline = [
+        {"$group": {"_id": None, "total_encaisse": {"$sum": "$montant"}}}
+    ]
+    paiements_result = await db.paiements.aggregate(paiements_pipeline).to_list(1)
+    total_encaisse = paiements_result[0]["total_encaisse"] if paiements_result else 0
+    
+    ca_data = {"total_ca": total_ca, "total_encaisse": total_encaisse}
     
     # Paiements en attente
     ventes_partielles = await db.ventes.count_documents({"statut_paiement": "partiel"})
