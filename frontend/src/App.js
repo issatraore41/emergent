@@ -274,26 +274,7 @@ const LotissementsPage = () => {
     }
   };
 
-  const handleExportCSV = async () => {
-    try {
-      const response = await axios.get(`${API}/export/csv/lotissements`, {
-        responseType: 'blob'
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `lotissements_${new Date().toISOString().slice(0,10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('Export CSV terminé !');
-    } catch (error) {
-      toast.error('Erreur lors de l\'export CSV');
-    }
-  };
+  // Utiliser la fonction utilitaire
 
   const handleCreateLotissement = async (e) => {
     e.preventDefault();
