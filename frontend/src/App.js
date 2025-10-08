@@ -783,12 +783,16 @@ const VentesPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-slate-800">Gestion des Ventes</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700">
-              ➕ Nouvelle Vente
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-3">
+          <Button onClick={() => exportCSV('ventes')} variant="outline">
+            📄 Export CSV
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700">
+                ➕ Nouvelle Vente
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Enregistrer une nouvelle vente</DialogTitle>
