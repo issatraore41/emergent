@@ -1026,12 +1026,16 @@ const PaiementsPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-slate-800">Gestion des Paiements</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700">
-              ➕ Nouveau Paiement
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-3">
+          <Button onClick={() => exportCSV('paiements')} variant="outline">
+            📄 Export CSV
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700">
+                ➕ Nouveau Paiement
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Enregistrer un nouveau paiement</DialogTitle>
