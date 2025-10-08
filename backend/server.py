@@ -407,10 +407,112 @@ async def get_ventes_detaillees():
     
     return ventes_enrichies
 
-# Route de base
-@api_router.get("/")
-async def root():
-    return {"message": "API de Gestion de Lotissements BTP"}
+# Routes d'export
+@api_router.get("/export/excel")
+async def export_excel():
+    """Exporte toutes les données vers un fichier Excel multi-feuilles"""
+    try:
+        # Créer un fichier Excel avec plusieurs feuilles
+        output = BytesIO()
+        
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # Export des lotissements
+            lotissements = await db.lotissements.find({}, {"_id": 0}).to_list(1000)
+            if lotissements:
+                lotissements_processed = []
+                for lot in lotissements:
+                    lot_processed = parse_from_mongo(lot)
+                    # Convertir datetime en string pour Excel
+                    if 'created_at' in lot_processed:
+                        lot_processed['created_at'] = lot_processed['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                    lotissements_processed.append(lot_processed)
+                df_lotissements = pd.DataFrame(lotissements_processed)
+                df_lotissements.to_excel(writer, sheet_name='Lotissements', index=False)
+            
+            # Export des lots
+            lots = await db.lots.find({}, {"_id": 0}).to_list(1000)
+            if lots:
+                lots_processed = []
+                for lot in lots:
+                    lot_processed = parse_from_mongo(lot)
+                    if 'created_at' in lot_processed:
+                        lot_processed['created_at'] = lot_processed['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                    lots_processed.append(lot_processed)
+                df_lots = pd.DataFrame(lots_processed)
+                df_lots.to_excel(writer, sheet_name='Lots', index=False)
+            
+            # Export des clients
+            clients = await db.clients.find({}, {"_id": 0}).to_list(1000)
+            if clients:
+                clients_processed = []
+                for client in clients:
+                    client_processed = parse_from_mongo(client)
+                    if 'created_at' in client_processed:
+                        client_processed['created_at'] = client_processed['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                    if 'date_naissance' in client_processed and isinstance(client_processed['date_naissance'], date):
+                        client_processed['date_naissance'] = client_processed['date_naissance'].strftime('%Y-%m-%d')
+                    clients_processed.append(client_processed)
+                df_clients = pd.DataFrame(clients_processed)
+                df_clients.to_excel(writer, sheet_name='Clients', index=False)
+            
+            # Export des ventes
+            ventes = await db.ventes.find({}, {"_id": 0}).to_list(1000)
+            if ventes:
+                ventes_processed = []
+                for vente in ventes:
+                    vente_processed = parse_from_mongo(vente)
+                    if 'created_at' in vente_processed:
+                        vente_processed['created_at'] = vente_processed['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                    if 'date_vente' in vente_processed and isinstance(vente_processed['date_vente'], date):
+                        vente_processed['date_vente'] = vente_processed['date_vente'].strftime('%Y-%m-%d')
+                    # Aplatir l'objet témoin
+                    if 'temoin' in vente_processed:
+                        vente_processed['temoin_nom'] = vente_processed['temoin']['nom_complet']
+                        vente_processed['temoin_telephone'] = vente_processed['temoin']['telephone']
+                        del vente_processed['temoin']
+                    ventes_processed.append(vente_processed)
+                df_ventes = pd.DataFrame(ventes_processed)
+                df_ventes.to_excel(writer, sheet_name='Ventes', index=False)
+            
+            # Export des paiements
+            paiements = await db.paiements.find({}, {"_id": 0}).to_list(1000)
+            if paiements:
+                paiements_processed = []
+                for paiement in paiements:
+                    paiement_processed = parse_from_mongo(paiement)
+                    if 'created_at' in paiement_processed:
+                        paiement_processed['created_at'] = paiement_processed['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                    if 'date_paiement' in paiement_processed and isinstance(paiement_processed['date_paiement'], date):
+                        paiement_processed['date_paiement'] = paiement_processed['date_paiement'].strftime('%Y-%m-%d')
+                    paiements_processed.append(paiement_processed)
+                df_paiements = pd.DataFrame(paiements_processed)
+                df_paiements.to_excel(writer, sheet_name='Paiements', index=False)
+            
+            # Export des ventes détaillées (avec jointures)
+            ventes_detaillees = await get_ventes_detaillees()
+            if ventes_detaillees:
+                ventes_det_processed = []
+                for vente in ventes_detaillees:
+                    vente_flat = {
+                        'vente_id': vente['id'],
+                        'prix_vente': vente['prix_vente'],
+                        'avance_payee': vente['avance_payee'],
+                        'reste_a_payer': vente['reste_a_payer'],
+                        'date_vente': vente['date_vente'],
+                        'statut_paiement': vente['statut_paiement'],
+                        'temoin_nom': vente['temoin']['nom_complet'],
+                        'temoin_telephone': vente['temoin']['telephone'],
+                        # Infos client
+                        'client_nom': vente.get('client_info', [{}])[0].get('nom_complet', ''),
+                        'client_telephone': vente.get('client_info', [{}])[0].get('telephone', ''),
+                        'client_cni': vente.get('client_info', [{}])[0].get('numero_cni', ''),
+                        # Infos lot
+                        'lot_numero': vente.get('lot_info', [{}])[0].get('numero_lot', ''),
+                        'lot_ilot': vente.get('lot_info', [{}])[0].get('numero_ilot', ''),
+                        'lot_superficie': vente.get('lot_info', [{}])[0].get('superficie_m2', ''),
+                        # Infos lotissement
+                        'lotissement_nom': vente.get('lotissement_info', [{}])[0].get('nom', ''),
+                        'lotissement_localisation': vente.get('lotissement_info', [{}])[0].get('localisation', '')\n                    }\n                    ventes_det_processed.append(vente_flat)\n                df_ventes_det = pd.DataFrame(ventes_det_processed)\n                df_ventes_det.to_excel(writer, sheet_name='Ventes_Detaillees', index=False)\n        \n        output.seek(0)\n        \n        # Sauvegarder le fichier\n        filename = f\"export_lotissements_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx\"\n        filepath = uploads_dir / filename\n        \n        with open(filepath, 'wb') as f:\n            f.write(output.getvalue())\n        \n        return FileResponse(\n            path=filepath,\n            filename=filename,\n            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'\n        )\n    \n    except Exception as e:\n        logger.error(f\"Erreur lors de l'export Excel: {e}\")\n        raise HTTPException(status_code=500, detail=f\"Erreur lors de l'export: {str(e)}\")\n\n@api_router.get(\"/export/csv/{table_name}\")\nasync def export_csv(table_name: str):\n    \"\"\"Exporte une table spécifique vers un fichier CSV\"\"\"\n    try:\n        valid_tables = ['lotissements', 'lots', 'clients', 'ventes', 'paiements']\n        if table_name not in valid_tables:\n            raise HTTPException(status_code=400, detail=f\"Table non valide. Tables disponibles: {valid_tables}\")\n        \n        # Récupérer les données selon la table\n        collection = db[table_name]\n        data = await collection.find({}, {\"_id\": 0}).to_list(1000)\n        \n        if not data:\n            raise HTTPException(status_code=404, detail=\"Aucune donnée trouvée\")\n        \n        # Traiter les données\n        processed_data = []\n        for item in data:\n            item_processed = parse_from_mongo(item)\n            # Convertir les dates et datetime en string\n            for key, value in item_processed.items():\n                if isinstance(value, datetime):\n                    item_processed[key] = value.strftime('%Y-%m-%d %H:%M:%S')\n                elif isinstance(value, date):\n                    item_processed[key] = value.strftime('%Y-%m-%d')\n                elif isinstance(value, dict):  # Pour l'objet témoin dans les ventes\n                    for sub_key, sub_value in value.items():\n                        item_processed[f\"{key}_{sub_key}\"] = sub_value\n                    del item_processed[key]\n            processed_data.append(item_processed)\n        \n        # Créer le CSV\n        filename = f\"export_{table_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv\"\n        filepath = uploads_dir / filename\n        \n        df = pd.DataFrame(processed_data)\n        df.to_csv(filepath, index=False, encoding='utf-8-sig')  # utf-8-sig pour Excel\n        \n        return FileResponse(\n            path=filepath,\n            filename=filename,\n            media_type='text/csv'\n        )\n    \n    except Exception as e:\n        logger.error(f\"Erreur lors de l'export CSV: {e}\")\n        raise HTTPException(status_code=500, detail=f\"Erreur lors de l'export: {str(e)}\")\n\n# Route de base\n@api_router.get(\"/\")\nasync def root():\n    return {\"message\": \"API de Gestion de Lotissements BTP\"}"
 
 # Include the router in the main app
 app.include_router(api_router)
