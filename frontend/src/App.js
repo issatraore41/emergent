@@ -884,16 +884,238 @@ const VentesPage = () => {
   );
 };
 
-const PaiementsPage = () => (
-  <div className="space-y-6">
-    <h2 className="text-3xl font-bold text-slate-800">Gestion des Paiements</h2>
-    <Card>
-      <CardContent className="flex items-center justify-center h-64">
-        <p className="text-slate-500">Module en développement...</p>
-      </CardContent>
-    </Card>
-  </div>
-);
+const PaiementsPage = () => {
+  const [paiements, setPaiements] = useState([]);
+  const [ventes, setVentes] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newPaiement, setNewPaiement] = useState({
+    vente_id: '',
+    montant: '',
+    date_paiement: new Date().toISOString().split('T')[0],
+    type_paiement: 'echeance'
+  });
+
+  useEffect(() => {
+    fetchPaiements();
+    fetchVentesPartielles();
+  }, []);
+
+  const fetchPaiements = async () => {
+    try {
+      const response = await axios.get(`${API}/paiements`);
+      setPaiements(response.data);
+    } catch (error) {
+      toast.error('Erreur lors de la récupération des paiements');
+    }
+  };
+
+  const fetchVentesPartielles = async () => {
+    try {
+      const response = await axios.get(`${API}/ventes-detaillees`);
+      // Filtrer seulement les ventes avec un reste à payer
+      const ventesPartielles = response.data.filter(vente => vente.reste_a_payer > 0);
+      setVentes(ventesPartielles);
+    } catch (error) {
+      toast.error('Erreur lors de la récupération des ventes');
+    }
+  };
+
+  const handleCreatePaiement = async (e) => {
+    e.preventDefault();
+    try {
+      const paiementData = {
+        ...newPaiement,
+        montant: parseFloat(newPaiement.montant)
+      };
+      await axios.post(`${API}/paiements`, paiementData);
+      toast.success('Paiement enregistré avec succès');
+      setNewPaiement({
+        vente_id: '',
+        montant: '',
+        date_paiement: new Date().toISOString().split('T')[0],
+        type_paiement: 'echeance'
+      });
+      setIsDialogOpen(false);
+      fetchPaiements();
+      fetchVentesPartielles();
+    } catch (error) {
+      toast.error('Erreur lors de l\'enregistrement du paiement');
+    }
+  };
+
+  const selectedVente = ventes.find(vente => vente.id === newPaiement.vente_id);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold text-slate-800">Gestion des Paiements</h2>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700">
+              ➕ Nouveau Paiement
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Enregistrer un nouveau paiement</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreatePaiement} className="space-y-4">
+              <div>
+                <Label htmlFor="vente_id">Vente en cours</Label>
+                <Select value={newPaiement.vente_id} onValueChange={(value) => setNewPaiement({...newPaiement, vente_id: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une vente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ventes.map((vente) => (
+                      <SelectItem key={vente.id} value={vente.id}>
+                        {vente.client_info?.[0]?.nom_complet} - Lot {vente.lot_info?.[0]?.numero_lot} 
+                        (Reste: {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(vente.reste_a_payer)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedVente && (
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="space-y-2 text-sm text-blue-800">
+                    <p><strong>Client:</strong> {selectedVente.client_info?.[0]?.nom_complet}</p>
+                    <p><strong>Lot:</strong> {selectedVente.lot_info?.[0]?.numero_lot} - Îlot {selectedVente.lot_info?.[0]?.numero_ilot}</p>
+                    <p><strong>Prix total:</strong> {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(selectedVente.prix_vente)}</p>
+                    <p><strong>Reste à payer:</strong> {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(selectedVente.reste_a_payer)}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="montant">Montant du Paiement</Label>
+                  <Input
+                    id="montant"
+                    type="number"
+                    step="0.01"
+                    value={newPaiement.montant}
+                    onChange={(e) => setNewPaiement({...newPaiement, montant: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="date_paiement">Date de Paiement</Label>
+                  <Input
+                    id="date_paiement"
+                    type="date"
+                    value={newPaiement.date_paiement}
+                    onChange={(e) => setNewPaiement({...newPaiement, date_paiement: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="type_paiement">Type de Paiement</Label>
+                <Select value={newPaiement.type_paiement} onValueChange={(value) => setNewPaiement({...newPaiement, type_paiement: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="echeance">Échéance</SelectItem>
+                    <SelectItem value="solde">Solde</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedVente && newPaiement.montant && (
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>Nouveau reste à payer:</strong> {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(Math.max(0, selectedVente.reste_a_payer - parseFloat(newPaiement.montant)))}
+                  </p>
+                </div>
+              )}
+
+              <Button type="submit" className="w-full">
+                Enregistrer le paiement
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Vente ID</TableHead>
+                <TableHead>Montant</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Date de Paiement</TableHead>
+                <TableHead>Date d'Enregistrement</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paiements.map((paiement) => (
+                <TableRow key={paiement.id}>
+                  <TableCell className="font-medium">{paiement.vente_id}</TableCell>
+                  <TableCell className="font-medium text-green-600">
+                    {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(paiement.montant)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={paiement.type_paiement === 'avance' ? 'default' : paiement.type_paiement === 'solde' ? 'destructive' : 'secondary'}>
+                      {paiement.type_paiement}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{new Date(paiement.date_paiement).toLocaleDateString('fr-FR')}</TableCell>
+                  <TableCell>{new Date(paiement.created_at).toLocaleDateString('fr-FR')}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {paiements.length === 0 && (
+            <div className="flex items-center justify-center h-32">
+              <p className="text-slate-500">Aucun paiement enregistré</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section des ventes en attente de paiement */}
+      {ventes.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-red-700">🔔 Ventes en attente de paiement</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Lot</TableHead>
+                  <TableHead>Prix Total</TableHead>
+                  <TableHead>Reste à Payer</TableHead>
+                  <TableHead>Date de Vente</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ventes.map((vente) => (
+                  <TableRow key={vente.id}>
+                    <TableCell className="font-medium">{vente.client_info?.[0]?.nom_complet}</TableCell>
+                    <TableCell>Lot {vente.lot_info?.[0]?.numero_lot} - Îlot {vente.lot_info?.[0]?.numero_ilot}</TableCell>
+                    <TableCell>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(vente.prix_vente)}</TableCell>
+                    <TableCell className="font-bold text-red-600">
+                      {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(vente.reste_a_payer)}
+                    </TableCell>
+                    <TableCell>{new Date(vente.date_vente).toLocaleDateString('fr-FR')}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
 
 function App() {
   return (
