@@ -535,7 +535,60 @@ async def export_excel():
     
     except Exception as e:
         logger.error(f"Erreur lors de l'export Excel: {e}")
-        raise HTTPException(status_code=500, detail=f"Erreur lors de l'export: {str(e)}")\n\n@api_router.get(\"/export/csv/{table_name}\")\nasync def export_csv(table_name: str):\n    \"\"\"Exporte une table spécifique vers un fichier CSV\"\"\"\n    try:\n        valid_tables = ['lotissements', 'lots', 'clients', 'ventes', 'paiements']\n        if table_name not in valid_tables:\n            raise HTTPException(status_code=400, detail=f\"Table non valide. Tables disponibles: {valid_tables}\")\n        \n        # Récupérer les données selon la table\n        collection = db[table_name]\n        data = await collection.find({}, {\"_id\": 0}).to_list(1000)\n        \n        if not data:\n            raise HTTPException(status_code=404, detail=\"Aucune donnée trouvée\")\n        \n        # Traiter les données\n        processed_data = []\n        for item in data:\n            item_processed = parse_from_mongo(item)\n            # Convertir les dates et datetime en string\n            for key, value in item_processed.items():\n                if isinstance(value, datetime):\n                    item_processed[key] = value.strftime('%Y-%m-%d %H:%M:%S')\n                elif isinstance(value, date):\n                    item_processed[key] = value.strftime('%Y-%m-%d')\n                elif isinstance(value, dict):  # Pour l'objet témoin dans les ventes\n                    for sub_key, sub_value in value.items():\n                        item_processed[f\"{key}_{sub_key}\"] = sub_value\n                    del item_processed[key]\n            processed_data.append(item_processed)\n        \n        # Créer le CSV\n        filename = f\"export_{table_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv\"\n        filepath = uploads_dir / filename\n        \n        df = pd.DataFrame(processed_data)\n        df.to_csv(filepath, index=False, encoding='utf-8-sig')  # utf-8-sig pour Excel\n        \n        return FileResponse(\n            path=filepath,\n            filename=filename,\n            media_type='text/csv'\n        )\n    \n    except Exception as e:\n        logger.error(f\"Erreur lors de l'export CSV: {e}\")\n        raise HTTPException(status_code=500, detail=f\"Erreur lors de l'export: {str(e)}\")\n\n# Route de base\n@api_router.get(\"/\")\nasync def root():\n    return {\"message\": \"API de Gestion de Lotissements BTP\"}"
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'export: {str(e)}")
+
+@api_router.get("/export/csv/{table_name}")
+async def export_csv(table_name: str):
+    """Exporte une table spécifique vers un fichier CSV"""
+    try:
+        valid_tables = ['lotissements', 'lots', 'clients', 'ventes', 'paiements']
+        if table_name not in valid_tables:
+            raise HTTPException(status_code=400, detail=f"Table non valide. Tables disponibles: {valid_tables}")
+        
+        # Récupérer les données selon la table
+        collection = db[table_name]
+        data = await collection.find({}, {"_id": 0}).to_list(1000)
+        
+        if not data:
+            raise HTTPException(status_code=404, detail="Aucune donnée trouvée")
+        
+        # Traiter les données
+        processed_data = []
+        for item in data:
+            item_processed = parse_from_mongo(item)
+            # Convertir les dates et datetime en string
+            for key, value in item_processed.items():
+                if isinstance(value, datetime):
+                    item_processed[key] = value.strftime('%Y-%m-%d %H:%M:%S')
+                elif isinstance(value, date):
+                    item_processed[key] = value.strftime('%Y-%m-%d')
+                elif isinstance(value, dict):  # Pour l'objet témoin dans les ventes
+                    for sub_key, sub_value in value.items():
+                        item_processed[f"{key}_{sub_key}"] = sub_value
+                    del item_processed[key]
+            processed_data.append(item_processed)
+        
+        # Créer le CSV
+        filename = f"export_{table_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        filepath = uploads_dir / filename
+        
+        df = pd.DataFrame(processed_data)
+        df.to_csv(filepath, index=False, encoding='utf-8-sig')  # utf-8-sig pour Excel
+        
+        return FileResponse(
+            path=filepath,
+            filename=filename,
+            media_type='text/csv'
+        )
+    
+    except Exception as e:
+        logger.error(f"Erreur lors de l'export CSV: {e}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'export: {str(e)}")
+
+# Route de base
+@api_router.get("/")
+async def root():
+    return {"message": "API de Gestion de Lotissements BTP"}
 
 # Include the router in the main app
 app.include_router(api_router)
