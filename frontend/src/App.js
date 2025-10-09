@@ -662,8 +662,9 @@ const ClientsPage = () => {
                 Enregistrer le client
               </Button>
             </form>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -912,8 +913,9 @@ const VentesPage = () => {
                 Enregistrer la vente
               </Button>
             </form>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -1120,8 +1122,9 @@ const PaiementsPage = () => {
                 Enregistrer le paiement
               </Button>
             </form>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
