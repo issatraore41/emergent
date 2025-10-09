@@ -303,43 +303,44 @@ const LotissementsPage = () => {
                 ➕ Nouveau Lotissement
               </Button>
             </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Créer un nouveau lotissement</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateLotissement} className="space-y-4">
-              <div>
-                <Label htmlFor="nom">Nom du lotissement</Label>
-                <Input
-                  id="nom"
-                  value={newLotissement.nom}
-                  onChange={(e) => setNewLotissement({...newLotissement, nom: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="localisation">Localisation</Label>
-                <Input
-                  id="localisation"
-                  value={newLotissement.localisation}
-                  onChange={(e) => setNewLotissement({...newLotissement, localisation: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description (optionnel)</Label>
-                <Textarea
-                  id="description"
-                  value={newLotissement.description}
-                  onChange={(e) => setNewLotissement({...newLotissement, description: e.target.value})}
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Créer le lotissement
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Créer un nouveau lotissement</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreateLotissement} className="space-y-4">
+                <div>
+                  <Label htmlFor="nom">Nom du lotissement</Label>
+                  <Input
+                    id="nom"
+                    value={newLotissement.nom}
+                    onChange={(e) => setNewLotissement({...newLotissement, nom: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="localisation">Localisation</Label>
+                  <Input
+                    id="localisation"
+                    value={newLotissement.localisation}
+                    onChange={(e) => setNewLotissement({...newLotissement, localisation: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description (optionnel)</Label>
+                  <Textarea
+                    id="description"
+                    value={newLotissement.description}
+                    onChange={(e) => setNewLotissement({...newLotissement, description: e.target.value})}
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  Créer le lotissement
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {loading ? (
