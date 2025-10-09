@@ -509,8 +509,9 @@ const LotsPage = () => {
                 Créer le lot
               </Button>
             </form>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
